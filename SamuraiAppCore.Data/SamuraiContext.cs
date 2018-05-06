@@ -18,7 +18,10 @@ namespace SamuraiAppCore.Data
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
-			builder.Entity<SamuraiBattle>().HasKey(s => new { s.BattleId, s.SamuraiId });
+			builder.Entity<SamuraiBattle>().HasKey(s => new { s.BattleId, s.SamuraiId }); //combined fields in key
+
+			//builder.Entity<Samurai>().Property(s => s.SecretIdentity).IsRequired();
+
 			base.OnModelCreating(builder);
 
 		}
@@ -30,6 +33,7 @@ namespace SamuraiAppCore.Data
 				.Build();
 
 			optionsBuilder.UseSqlServer("Server=BROADHURST_WIN8\\BROADHURST;Database=SamuraiDataCore;Trusted_Connection=True;MultipleActiveResultSets=true;");
+			optionsBuilder.EnableSensitiveDataLogging();
 		}
 	}
 }
