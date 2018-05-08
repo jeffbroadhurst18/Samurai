@@ -16,167 +16,301 @@ namespace CoreUI
 
 		static void Main(string[] args)
 		{
+			//Adds the logger to the context.
 			_context.GetService<ILoggerFactory>().AddProvider(new MyLoggerProvider());
-			//InsertSamurai();
-			//InsertMultipleSamurai();
-			//SimpleSamuraiQuery();
-			//MoreQueries();
-			//RetrieveAndUpdateSamurai();
-			//RetrieveAndUpdateMultipleSamurai();
-			//QueryAndUpdateSamuraiDisconnected();
-			//QueryAndUpdateSamuraiDisconnectedBattle();
-			//DeleteWhileTracked();
-			//DeleteMany();
-			//RawSQLQuery();
-			//StoredProcQuery();
-			//QueryWithNonSql();
-			RawSQlCommandWithOutput();
 
+
+			#region SQL calls
+			//BasicSQLMethods.InsertSamurai();
+			//BasicSQLMethods.InsertMultipleSamurai();
+			//BasicSQLMethods.SimpleSamuraiQuery();
+			//BasicSQLMethods.MoreQueries();
+			//BasicSQLMethods.RetrieveAndUpdateSamurai();
+			//BasicSQLMethods.RetrieveAndUpdateMultipleSamurai();
+			//BasicSQLMethods.QueryAndUpdateSamuraiDisconnected();
+			//BasicSQLMethods.QueryAndUpdateSamuraiDisconnectedBattle();
+			//BasicSQLMethods.DeleteWhileTracked();
+			//BasicSQLMethods.DeleteMany();
+			//BasicSQLMethods.RawSQLQuery();
+			//BasicSQLMethods.StoredProcQuery();
+			//BasicSQLMethods.QueryWithNonSql(); 
+			#endregion
+
+			//BasicSQLMethods.RawSQlCommandWithOutput();
+
+			//InsertNewPkFkGraph();
+
+
+			#region inactive methods
+
+			// InsertNewPkFkGraphMultipleChildren();
+			// InsertNewOneToOneGraph();
+			//AddChildToExistingObjectWhileTracked();
+			//AddOneToOneToExistingObjectWhileTracked();
+			//AddBattles();
+			//AddManyToManyWithFks();
+			//AddManyToManyWithObjects();
+			//EagerLoadWithInclude();
+			EagerLoadManyToManyAkaChildrenGrandchildren();
+			//EagerLoadFilteredManyToManyAkaChildrenGrandchildren();
+			//EagerLoadWithMultipleBranches();
+			//EagerLoadWithFromSql();
+			//EagerLoadViaProjection();
+			//EagerLoadAllOrNothingChildrenNope();
+			//FilterAcrossRelationship();
+			//ExplicitLoad();
+			//  ExplicitLoadWithChildFilter();
+			//AnonymousTypeViaProjection();
+			//AnonymousTypeViaProjectionWithRelated();
+			//RelatedObjectsFixUp();
+			//EagerLoadViaProjectionNotQuite();
+			//EagerLoadViaProjectionAndScalars();
+			//FilteredEagerLoadViaProjectionNope();
+
+			#endregion
 			Console.ReadLine();
 		}
 
-		private static void RawSQlCommandWithOutput()
+		private static void InsertNewPkFkGraph()
 		{
-			var procResult = new SqlParameter
+			var samurai = new Samurai
 			{
-				ParameterName = "@ProcResult",
-				SqlDbType = System.Data.SqlDbType.VarChar,
-				Direction = System.Data.ParameterDirection.Output,
-				Size = 50
+				Name = "Kambei Shimada",
+				Quotes = new List<Quote>
+							   {
+								 new Quote {Text = "I've come to save you"}
+							   }
 			};
-			// use _context.Database as we aren't operating on a specific table
-			//SP gives output parameter
-			_context.Database.ExecuteSqlCommand(
-				"exec FindLongestName @procResult OUT", procResult);
-			Console.WriteLine($"Longest Name {procResult.Value}");
-		}
-
-		private static void QueryWithNonSql()
-		{
-			var samurais = _context.Samurais
-				.Select(s => new { newName = ReverseString(s.Name), name = s.Name}).
-				ToList();
-			samurais.ForEach(s => Console.Write(s.name + " " + s.newName + Environment.NewLine));
-		}
-
-		private static string ReverseString(string value)
-		{
-			var stringChar = value.AsEnumerable();
-			return string.Concat(stringChar.Reverse());
-		}
-
-		private static void StoredProcQuery()
-		{
-			var namePart = "J";
-			//var samurais = _context.Samurais.FromSql("EXEC FilterSamuraiByNamePart {0}", namePart)
-			var samurais = _context.Samurais.FromSql("EXEC FilterSamuraiByNamePart @namepart",
-				new SqlParameter("@namepart", namePart))
-				.OrderByDescending(s => s.Name).ToList(); //won't amend the SP
-
-			samurais.ForEach(s => Console.WriteLine(s.Name));
-			Console.WriteLine();
-		}
-
-		private static void RawSQLQuery()
-		{
-			//EF works out that the orderby can be done by sql on database.
-			var samurais = _context.Samurais.FromSql("Select * from Samurais")
-				.Where(s =>s.Name != "Julie") //Does filetr on db, so don't return complete dataset to here
-				.OrderByDescending(s=> s.Name)
-				.ToList();
-
-			samurais.ForEach(s => Console.WriteLine(s.Name));
-			Console.WriteLine();
-		}
-
-		private static void DeleteMany()
-		{
-			var samurais = _context.Samurais.Where(s => s.Id > 5);
-			_context.RemoveRange(samurais);
-			_context.SaveChanges(); //removes a range of objects in one batch
-		}
-
-		private static void DeleteWhileTracked()
-		{
-			var samurai = _context.Samurais.FirstOrDefault(s => s.Name == "Wendy");
-			_context.Samurais.Remove(samurai); //You must pass in the whole of the class.
-
-			//alternatives
-			//_context.Remove(samurai);
-			//_context.Entry(samurai).State = Microsoft.EntityFrameworkCore.EntityState.Deleted;
-			//_context.Remove(_context.Samurais.Find(8)); //means you only have to pass in id.
-			_context.SaveChanges(); //
-		}
-
-		private static void QueryAndUpdateSamuraiDisconnectedBattle()
-		{
-			var battle = _context.Battles.FirstOrDefault();
-			var battle2 = _context.Battles.LastOrDefault();
-			//battle2.EndDate = new DateTime(1759, 12, 31);
-			_context.Entry(battle2).State = Microsoft.EntityFrameworkCore.EntityState.Modified; //will be updated by Save changes
-			_context.SaveChanges(); //updates even though no data has actually changed.
-			using (var contextNewAppInstance = new SamuraiContext()) //different context
-			{
-				contextNewAppInstance.Battles.Update(battle); //EF works out which battle to update from the data
-				//int the battle object.
-				contextNewAppInstance.SaveChanges();
-				//EF doesn't know which property has been updated so sends them all in. 
-			}
-		}
-
-		private static void QueryAndUpdateSamuraiDisconnected()
-		{
-			var samurai = _context.Samurais.FirstOrDefault(s => s.Name == "Jeff");
-			samurai.Name += "San";
-			using (var contextNewAppInstance = new SamuraiContext()) //different context
-			{
-				contextNewAppInstance.Samurais.Update(samurai);
-				contextNewAppInstance.SaveChanges();
-			}
-		}
-
-		private static void RetrieveAndUpdateMultipleSamurai()
-		{
-			var samurais = _context.Samurais.Where(s => !s.Name.Contains("San")).ToList();
-			samurais.ForEach(s => s.Name += "San"); //note the syntax for foreach on a list
+			_context.Samurais.Add(samurai);
 			_context.SaveChanges();
+			//Runs this as two separate sql statements.  The id generated from adding the samurai
+			//is used as the foreignkey value when creating the quote.
 		}
 
-		private async static void RetrieveAndUpdateSamurai()
+		private static void InsertNewPkFkGraphMultipleChildren()
 		{
-			var samurai = _context.Samurais.FirstOrDefault();
-			samurai.Name += "San";
-			await _context.SaveChangesAsync();
+			var samurai = new Samurai
+			{
+				Name = "Kyūzō",
+				Quotes = new List<Quote> {
+		  new Quote {Text = "Watch out for my sharp sword!"},
+		  new Quote {Text="I told you to watch out for the sharp sword! Oh well!" }
 		}
-
-		private static void MoreQueries()
-		{
-			var name = "Julie";
-			//var samurais = _context.Samurais.FirstOrDefault(s => s.Name == name);
-			var samurais = _context.Samurais.Find(1); //if the record is already in memory then EF won't go to
-			//the database to get the value.
-		}
-
-		private static void SimpleSamuraiQuery()
-		{
-			var samurais = _context.Samurais.ToList();
-		}
-
-		private static void InsertMultipleSamurai()
-		{
-			var samurai = new Samurai { Name = "Bill" };
-			var samuraiSam = new Samurai { Name = "Sampson" };
-			_context.AddRange(new List<Samurai>() { samurai, samuraiSam });//Adds multiple
-			_context.SaveChanges(); //Does single SQL to insert batch of data.
-		}
-
-		private static void InsertSamurai()
-		{
-			var samurai = new Samurai { Name = "Julie" };
+			};
 			_context.Samurais.Add(samurai);
 			_context.SaveChanges();
 		}
 
+		private static void InsertNewOneToOneGraph()
+		{
+			var samurai = new Samurai { Name = "Shichirōji " };
+			samurai.SecretIdentity = new SecretIdentity { RealName = "Julie" };
+			_context.Add(samurai);
+			_context.SaveChanges();
+		}
+
+		private static void AddChildToExistingObjectWhileTracked()
+		{
+			var samurai = _context.Samurais.First();
+			samurai.Quotes.Add(new Quote
+			{
+				Text = "I bet you're happy that I've saved you!"
+			});
+			_context.SaveChanges();
+		}
+
+		private static void AddOneToOneToExistingObjectWhileTracked()
+		{
+			var samurai = _context.Samurais
+			  .FirstOrDefault(s => s.SecretIdentity == null);
+			samurai.SecretIdentity = new SecretIdentity { RealName = "Sampson" };
+			_context.SaveChanges();
+		}
+
+		private static void AddBattles()
+		{
+			_context.Battles.AddRange(
+			  new Battle { Name = "Battle of Shiroyama", StartDate = new DateTime(1877, 9, 24), EndDate = new DateTime(1877, 9, 24) },
+			  new Battle { Name = "Siege of Osaka", StartDate = new DateTime(1614, 1, 1), EndDate = new DateTime(1615, 12, 31) },
+			  new Battle { Name = "Boshin War", StartDate = new DateTime(1868, 1, 1), EndDate = new DateTime(1869, 1, 1) }
+			  );
+			_context.SaveChanges();
+		}
+
+		private static void AddManyToManyWithFks()
+		{
+			_context = new SamuraiContext();
+			var sb = new SamuraiBattle { SamuraiId = 1, BattleId = 1 }; //just use keys 
+			_context.SamuraiBattles.Add(sb);
+			_context.SaveChanges();
+		}
+
+		private static void AddManyToManyWithObjects()
+		{
+			_context = new SamuraiContext();
+			var samurai = _context.Samurais.FirstOrDefault();
+			var battle = _context.Battles.LastOrDefault();
+			_context.SamuraiBattles.Add(
+			 new SamuraiBattle { Samurai = samurai, Battle = battle });//use full entities EF extracts ids
+			_context.SaveChanges();
+		}
+
+		private static void EagerLoadWithInclude()
+		{
+			_context = new SamuraiContext();
+			var samuraiWithQuotes = _context.Samurais.Include(s => s.Quotes).ToList();
+		}
+
+		private static void EagerLoadManyToManyAkaChildrenGrandchildren()
+		{
+			_context = new SamuraiContext();
+			var samuraiWithBattles = _context.Samurais
+			  .Include(s => s.SamuraiBattles)
+			  .ThenInclude(sb => sb.Battle).ToList();
+		}
+		private static void EagerLoadFilteredManyToManyAkaChildrenGrandchildren()
+		{
+			_context = new SamuraiContext();
+			var samuraiWithBattles = _context.Samurais
+			  .Include(s => s.SamuraiBattles)
+			  .ThenInclude(sb => sb.Battle)
+			  .Where(s => s.Name == "Kyūzō").ToList();
+		}
+
+		private static void EagerLoadWithMultipleBranches()
+		{
+			_context = new SamuraiContext();
+			var samurais = _context.Samurais
+			  .Include(s => s.SecretIdentity)
+			  .Include(s => s.Quotes).ToList();
+		}
+
+		private static void EagerLoadWithFindNope()
+		{
+
+		}
+
+		private static void EagerLoadWithFromSql()
+		{
+			var samurais = _context.Samurais.FromSql("select * from samurais")
+			  .Include(s => s.Quotes) //adds the include on to your SQL results
+			  .ToList();
+		}
+
+		private static void EagerLoadFilterChildrenNope()
+		{ //this won't work. No filtering, no sorting on Include
+			_context = new SamuraiContext();
+			var samurais = _context.Samurais
+			  .Include(s => s.Quotes.Where(q => q.Text.Contains("happy")))
+			  .ToList();
+		}
+
+
+
+		private static void AnonymousTypeViaProjection()
+		{
+			_context = new SamuraiContext();
+			var quotes = _context.Quotes
+			  .Select(q => new { q.Id, q.Text })
+			  .ToList();
+		}
+
+		private static void AnonymousTypeViaProjectionWithRelated()
+		{
+			_context = new SamuraiContext();
+			var samurais = _context.Samurais
+			  .Select(s => new
+			  {
+				  s.Id,
+				  s.SecretIdentity.RealName,
+				  QuoteCount = s.Quotes.Count
+			  })
+			  .ToList();
+		}
+
+		private static void RelatedObjectsFixUp()
+		{
+			_context = new SamuraiContext();
+			var samurai = _context.Samurais.Find(1);
+			var quotes = _context.Quotes.Where(q => q.SamuraiId == 1).ToList();
+		}
+
+		private static void EagerLoadViaProjectionNotQuite()
+		{
+			_context = new SamuraiContext();
+			var samurais = _context.Samurais
+			  .Select(s => new { Samurai = s, Quotes = s.Quotes })
+			  .ToList();
+			//all results are in memory, but navigations are not fixed up
+			//watch this github issue:https://github.com/aspnet/EntityFramework/issues/7131
+		}
+		private static void EagerLoadViaProjectionAndScalars()
+		{
+			_context = new SamuraiContext();
+			var samurais = _context.Samurais
+			  .Select(s => new { s.Id, Quotes = s.Quotes })
+			  .ToList();
+		}
+
+		private static void FilteredEagerLoadViaProjectionNope()
+		{
+			_context = new SamuraiContext();
+			var samurais = _context.Samurais
+			  .Select(s => new
+			  {
+				  Samurai = s,
+				  Quotes = s.Quotes
+						  .Where(q => q.Text.Contains("happy"))
+						  .ToList()
+			  })
+			  .ToList();
+			//quotes are not even retrieved in query.
+			//https://github.com/aspnet/EntityFramework/issues/7131
+		}
+
+
+
+		private static void ExplicitLoad()
+		{
+			_context = new SamuraiContext();
+			var samurai = _context.Samurais.FirstOrDefault();
+			_context.Entry(samurai).Collection(s => s.Quotes).Load();
+			_context.Entry(samurai).Reference(s => s.SecretIdentity).Load();
+
+		}
+
+		private static void ExplicitLoadWithChildFilter()
+		{
+			_context = new SamuraiContext();
+			var samurai = _context.Samurais.FirstOrDefault();
+			// _context.Entry(samurai)
+			//   .Collection(s => s.Quotes.Where(q=>q.Text.Contains("happy"))).Load();
+
+			_context.Entry(samurai)
+			  .Collection(s => s.Quotes)
+			   .Query()
+			  .Where(q => q.Text.Contains("happy"))
+			  .Load();
+
+
+		}
+
+
+		private static void FilterAcrossRelationship()
+		{
+			_context = new SamuraiContext();
+			var samurais = _context.Samurais
+			  .Where(s => s.Quotes.Any(q => q.Text.Contains("happy")))
+			  .ToList();
+		}
+
+
 
 	}
+
+
+
+
+
 }
+

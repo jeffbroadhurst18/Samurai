@@ -15,10 +15,12 @@ namespace SamuraiAppCore.Data
 		public DbSet<Samurai> Samurais { get; set; }
 		public DbSet<Battle> Battles { get; set; }
 		public DbSet<Quote> Quotes { get; set; }
+		public DbSet<SamuraiBattle> SamuraiBattles { get; set; }
 
 		protected override void OnModelCreating(ModelBuilder builder)
 		{
 			builder.Entity<SamuraiBattle>().HasKey(s => new { s.BattleId, s.SamuraiId }); //combined fields in key
+			//key comprises two ..id fields instead of adding Id column.
 
 			//builder.Entity<Samurai>().Property(s => s.SecretIdentity).IsRequired();
 
